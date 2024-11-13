@@ -2,7 +2,7 @@ import React from 'react';
 
 function NodeDetails({ connections, isValid, onClose }) {
   return (
-    <div className={`node-details ${isValid ? 'valid' : 'invalid'}`}>
+    <div className={`node-details ${isValid ? 'valid' : 'invalid'} open`}>
       <div className="node-details-header">
         <h2>Connection Details</h2>
         <button onClick={onClose} className="close-btn">X</button>

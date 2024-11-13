@@ -29,17 +29,14 @@ const Circuit = () => {
     (nodeId) => {
       const nodeData = educationNodes.find((node) => node.id === nodeId);
       if (!nodeData) return;
-
-      const xPos = Math.random() * 500 + 150; // Random X position
-      const yPos = Math.random() * 300 + 100; // Random Y position
-
+      const xPos = Math.random() * 500 + 150;
+      const yPos = Math.random() * 300 + 100;
       const newNode = {
         id: nodeData.id,
         data: { label: nodeData.label },
         position: { x: xPos, y: yPos },
         type: 'default'
       };
-
       setNodes((nds) => [...nds, newNode]);
     },
     [setNodes, educationNodes]
@@ -53,46 +50,72 @@ const Circuit = () => {
   }, [selectedNode, setNodes, setEdges]);
 
   const onConnect = useCallback(
-    (params) => {
-      setEdges((eds) => addEdge({ ...params, arrowHeadType: 'arrowclosed' }, eds));
-    },
+    (params) => setEdges((eds) => addEdge({ ...params, arrowHeadType: 'arrowclosed' }, eds)),
     [setEdges]
   );
-  
 
   const onValidate = useCallback(() => {
     const isValid = validateCircuit();
-    setIsValid(isValid); // Set the validation status
-    setShowDetails(true); // Show the details panel
+    setIsValid(isValid);
+    setShowDetails(true);
     if (isValid) {
-      setConnections(edges); // Set the connections for valid circuit
+      alert('Circuit is valid!');
+      setConnections(edges);
     } else {
-      setConnections([]); // Clear connections if invalid
+      alert('Circuit is invalid!');
+      setConnections([]);
     }
   }, [edges]);
 
   const validateCircuit = () => {
-    // Rule: No direct connection from start to end node
-    if (edges.some((edge) => edge.source === 'start' && edge.target === 'end')) return false;
-
-    // Rule: The circuit must start at the start node and end at the end node
-    if (!edges.some((edge) => edge.source === 'start') || !edges.some((edge) => edge.target === 'end')) return false;
-
-    // Rule: All nodes should be connected (no isolated nodes)
-    const nodeIds = nodes.map((node) => node.id);
-    const connectedNodes = new Set(edges.flatMap((edge) => [edge.source, edge.target]));
-    const disconnectedNodes = nodeIds.filter(
-      (nodeId) => nodeId !== 'start' && nodeId !== 'end' && !connectedNodes.has(nodeId)
-    );
-    if (disconnectedNodes.length > 0) return false;
-
-    // Rule: No circular connections (Cycle check)
-    const connections = edges.reduce((acc, edge) => {
-      acc[edge.source] = edge.target;
+    if (edges.some((edge) => (edge.source === 'start' && edge.target === 'end') || (edge.source === 'end' && edge.target === 'start'))) {
+      return false;
+    }
+  
+    if (!edges.some((edge) => edge.source === 'start') || !edges.some((edge) => edge.target === 'end')) {
+      return false;
+    }
+  
+    const connectionMap = edges.reduce((acc, edge) => {
+      if (!acc[edge.source]) acc[edge.source] = [];
+      acc[edge.source].push(edge.target);
       return acc;
     }, {});
-    return !hasCycle(connections);
+  
+    const isCircular = (node, visited = new Set(), stack = new Set()) => {
+      if (stack.has(node)) return true;
+      if (visited.has(node)) return false;
+      visited.add(node);
+      stack.add(node);
+  
+      if (connectionMap[node]) {
+        for (const neighbor of connectionMap[node]) {
+          if (isCircular(neighbor, visited, stack)) return true;
+        }
+      }
+      stack.delete(node);
+      return false;
+    };
+    if (isCircular('start')) return false;
+  
+    for (const edge of edges) {
+      const isInvalidConnection = nodes.some((node) =>
+        ((edge.source === node.id && edge.target === node.id) ||
+        (edge.source === 'start' && node.id === edge.target && connectionMap[node.id]?.length > 1) ||
+        (edge.target === 'end' && node.id === edge.source && connectionMap[edge.source]?.length > 1))
+      );
+      if (isInvalidConnection) return false;
+    }
+  
+    const allNodesConnected = nodes.every((node) =>
+      (node.id === 'start' && edges.some((edge) => edge.source === 'start')) ||
+      (node.id === 'end' && edges.some((edge) => edge.target === 'end')) ||
+      edges.some((edge) => edge.source === node.id || edge.target === node.id)
+    );
+  
+    return allNodesConnected;
   };
+  
 
   const hasCycle = (connections) => {
     const visited = new Set();
@@ -142,11 +165,12 @@ const Circuit = () => {
           <Background />
         </ReactFlow>
       </div>
-      {showDetails && (
+      {showDetails && isValid !== null && (
         <NodeDetails
           connections={connections}
           isValid={isValid}
           onClose={handleCloseDetails}
+          className={`node-details ${isValid ? 'valid' : 'invalid'} ${showDetails ? 'open' : ''}`}
         />
       )}
     </div>

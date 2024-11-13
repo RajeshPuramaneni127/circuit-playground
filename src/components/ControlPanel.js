@@ -14,16 +14,22 @@ function ControlPanel({ onAddNode, onDeleteNode, onValidate, isDeleteButtonActiv
 
   const handleAddSelectedNode = () => {
     if (selectedNode) {
-      onAddNode(selectedNode);  // Pass selected node ID to the parent component
+      onAddNode(selectedNode);
     }
-    setShowDropdown(false);  // Close the dropdown after selection
+    setShowDropdown(false);
   };
 
   return (
     <div className="control-panel">
       <button onClick={handleAddClick}>Add</button>
-      <button onClick={onDeleteNode} disabled={!isDeleteButtonActive}>Delete</button> {/* Disable delete if no node is selected */}
-      <button onClick={onValidate}>Validate</button>
+      <button
+        onClick={onDeleteNode}
+        disabled={!isDeleteButtonActive}
+        className={`delete-btn ${isDeleteButtonActive ? 'active' : 'inactive'}`}
+      >
+        Delete
+      </button>
+      <button onClick={onValidate} className="validate-btn">Validate</button>
 
       {showDropdown && (
         <div className="dropdown">
